@@ -1,10 +1,11 @@
 <p>Action is fired when the bottom of the div is scrolled to</p>
 
+{{#each things as |thing|}}
+  <div class="thing">{{thing.name}}</div>
+{{/each}}
+
 {{#infinite-scroller class="example-1" on-load-more=(action 'loadMore') as |scroller|}}
-  {{#each things as |thing|}}
-    <div class="thing">{{thing.name}}</div>
-  {{/each}}
-  {{#if scroller.isLoading}}
-    <div class="status">Loading...</div>
-  {{/if}}
+  Loading...
+{{else}}
+  Loaded
 {{/infinite-scroller}}

@@ -8,18 +8,64 @@ const { round } = Math;
 
 export default Component.extend({
   layout,
+  hasMore: true,
   classNames: ['infinite-scroller'],
   classNameBindings: ['isLoading'],
+
+
+  getScrollParents(el) {
+    // In firefox if the el is inside an iframe with display: none; window.getComputedStyle() will return null;
+    // https://bugzilla.mozilla.org/show_bug.cgi?id=548397
+    var computedStyle = getComputedStyle(el) || {};
+    var position = computedStyle.position;
+    var parents = [];
+
+    if (position === 'fixed') {
+      return [el];
+    }
+
+    var parent = el;
+    while ((parent = parent.parentNode) && parent && parent.nodeType === 1) {
+      var style = undefined;
+      try {
+        style = getComputedStyle(parent);
+      } catch (err) {}
+
+      if (typeof style === 'undefined' || style === null) {
+        parents.push(parent);
+        return parents;
+      }
+
+      var _style = style;
+      var overflow = _style.overflow;
+      var overflowX = _style.overflowX;
+      var overflowY = _style.overflowY;
+
+      if (/(auto|scroll)/.test(overflow + overflowY + overflowX)) {
+        if (position !== 'absolute' || ['relative', 'absolute', 'fixed'].indexOf(style.position) >= 0) {
+          parents.push(parent);
+        }
+      }
+    }
+
+    parents.push(document);
+    return parents;
+  },
 
   _infiniteScroller: inject('-infinite-scroller'),
 
   init() {
     this._super(...arguments);
     this.set('scrollEventName', 'scroll.' + guidFor(this));
+
   },
 
   didInsertElement() {
     this._super(...arguments);
+
+    let parents = this.getScrollParents(this.get('element'));
+    this.$scollElement = $(parents[0]);
+
     this.$scroller().on(this.get('scrollEventName'), args => {
       debounce(this, '_scrollingElement', args, this._scrollDebounce());
     });
@@ -35,11 +81,12 @@ export default Component.extend({
   },
 
   $scroller() {
-    if (this.getAttr('use-document')) {
-      return this.get('_infiniteScroller').$document();
-    } else {
-      return this.$();
-    }
+    return this.$scollElement;
+    // if (this.getAttr('use-document')) {
+    //   return this.get('_infiniteScroller').$document();
+    // } else {
+    //   return this.$();
+    // }
   },
 
   _scrollerHeight() {
@@ -51,19 +98,12 @@ export default Component.extend({
   },
 
   _scrollableHeight() {
-    if (this.getAttr('use-document')) {
-      return this.get('_infiniteScroller').$document().outerHeight();
-    } else {
-      return this.get('element').scrollHeight;
-    }
+    let element = this.$scollElement.get(0);
+    return element.scrollHeight || this.$scollElement.outerHeight();
   },
 
   _scrollTop() {
-    if (this.getAttr('use-document')) {
-      return this.get('_infiniteScroller').$document().scrollTop();
-    } else {
-      return this.$().scrollTop();
-    }
+    return this.$scollElement.scrollTop();
   },
 
   _scrollerBottom() {
@@ -83,7 +123,7 @@ export default Component.extend({
   },
 
   _shouldLoadMore() {
-    return this._reachedBottom() && !this.get('isLoading');
+    return this.get('hasMore') && this._reachedBottom() && !this.get('isLoading');
   },
 
   _scrollingElement() {

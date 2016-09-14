@@ -1,5 +1,9 @@
-{{yield (hash
-  error=error
-  isLoading=isLoading
-  loadMore=(action 'loadMore')
-)}}
+{{#if hasMore}}
+  {{yield (hash
+    error=error
+    isLoading=isLoading
+    loadMore=(action 'loadMore')
+  )}}
+{{else}}
+  {{yield to="inverse"}}
+{{/if}}
