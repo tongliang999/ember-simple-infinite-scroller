@@ -1,3 +1,4 @@
+import Ember from 'ember';
 import Component from 'ember-component';
 import layout from '../templates/components/infinite-scroller';
 import { guidFor } from 'ember-metal/utils';
@@ -60,11 +61,17 @@ export default Component.extend({
 
   },
 
+  useDocument: Ember.computed('scollElement', function() {
+    let ele = this.get('scollElement');
+    return ele && ele === document;
+  }),
+
   didInsertElement() {
     this._super(...arguments);
 
     let parents = this.getScrollParents(this.get('element'));
-    this.$scollElement = $(parents[0]);
+    this.$scollElement = Ember.$(parents[0]);
+    this.set('scollElement', parents[0]);
 
     this.$scroller().on(this.get('scrollEventName'), args => {
       debounce(this, '_scrollingElement', args, this._scrollDebounce());
@@ -82,16 +89,11 @@ export default Component.extend({
 
   $scroller() {
     return this.$scollElement;
-    // if (this.getAttr('use-document')) {
-    //   return this.get('_infiniteScroller').$document();
-    // } else {
-    //   return this.$();
-    // }
   },
 
   _scrollerHeight() {
-    if (this.getAttr('use-document')) {
-      return this.get('_infiniteScroller').$window().height();
+    if (this.get('useDocument')) {
+      return Ember.$(window).height();
     } else {
       return this.$scroller().outerHeight();
     }
